@@ -1,0 +1,508 @@
+/*******************************************************************************
+*         mcstas instrument definition url=http://www.mcstas.org
+*
+* instrument: Loki
+*
+* %identification
+* written by: andrew jackson (andrew.jackson@esss.se)
+* date: 2016-02-03 2017-07-17
+* origin: ess
+* release: mcstas 2.4
+* version: 2.0
+* %instrument_site: ess
+*
+* Loki
+*
+* %description
+* model of Loki using ESS moderator
+*
+* Notes:
+* - Testing new vertical bender component that works with gravity on
+* - Benders do not use realistic reflectivities
+* - Does not contain "realistic" detector array
+*
+* Example:
+*
+* %Parameters
+* Detector_Distance: [m] Distance from the sample to the detector. There are 3 detector lengths available, 2m, 5m, and 10m.
+* Repeat_Number: [10] The number of times the virtual input is repeated.
+* SAMPLE: [0] controls what kind of sample we are measuring by a integer input. 0 is the hydrogenated nanodisc. 1 is the deutorated nanodiscs on their own. 2 Both deutorated and hydrogenated nanodiscs in a 50/50 mix before lipids exchange. 3 is the nanodisc after lipids have had time to exchange.
+* Solvent_Fraction: [1] The ratio between heavy and light water the solvent is composed of.
+* Incoherent_Solvent: [0] Control if the sample is with the incoherent background from the solvent or without by a integer input. 0 with, 1 without, 2 incoherent on its own.
+* Virtual_Indput: [1] 0 is a virtual input with collimation length 10m and a wavelength band of 3AA - 10AA. 1 is an input using a collimation length of 10m and a wavelength band of 3AA to 18.4A
+* TOF_L_Monitor: [1] Toggle TOF_L_Monitor on or off, 0 = off, 1 = on.
+* PSDT_Monitor: [0] Toggle PSDT_Monitor on or off, 0 = off, 1 = on.
+* IRT_Monitor: [0] Toggle IRT_Monitor on or off, 0 = off, 1 = on.
+* IQT_Monitor: [0] Toggle IQT_Monitor on or off, 0 = off, 1 = on.
+* Plot_Frac: [4] the number of plots of the PSDT_monitor and the IQT_monitor. This is the fraction of time bins that are plotted, so a setting of 4 will generate 5 plots (20/4 = 5).
+*
+*******************************************************************************/
+
+
+DEFINE INSTRUMENT Loki(double Detector_Distance=5.0, int Repeat_Number=10,
+			int SAMPLE = 0, double Solvent_Fraction=1.0, Incoherent_Solvent = 0,Virtual_Indput = 1,int TOF_L_Monitor = 1,
+                        int PSDT_Monitor = 0,int IRT_Monitor = 0,int IQT_Monitor = 0,int Plot_Frac = 4)
+ 
+DECLARE
+%{
+
+
+double DetectorRadius;
+double DetectorSize;
+
+  //Strings
+  char virtualoutput_filename[256];
+  char mcploutput_filename[256];
+  char VI_filename[256];
+  char Sample_String[256];
+
+  // For sample controle:
+
+
+int Sam;
+int SAMPLE_HOLD;
+int SAMPLE_HOLD2;
+//int VI;
+int event_mode;
+int Beamstop;
+double T_min;
+double T_max;
+double P_Interact;
+
+double RhoHead_Deutorated;
+double RhoCH2_Deutorated;
+double RhoCH3_Deutorated;
+
+double RhoHead_Hydrated;
+double RhoCH2_Hydrated;
+double RhoCH3_Hydrated;
+
+double RhoHead_Mixed;
+double RhoCH2_Mixed;
+double RhoCH3_Mixed;
+
+double RhoH2O;
+double RhoD2O;
+double RhoSolv;
+
+double AxisRatio;
+double N_Lipids;
+double AreaPrHead;
+double H_1MSP;
+double V_1MSP;
+double V_1Headgruope;
+double V_1CH2Tail;
+double V_1CH3Tail;
+double SLD_1MSP;
+double Rough;
+double Conc;
+double AbsCrossection;
+
+double sigma_abs_H2O;
+double sigma_inc_H2O;
+double sigma_abs_D2O;
+double sigma_inc_D2O;
+
+double sigma_abs_solvent;
+double sigma_inc_solvent;
+double RhoSolv_Inc;
+%}
+
+INITIALIZE
+%{
+
+//All of these could be input perameters
+DetectorSize = 1.0;
+event_mode=0;
+Beamstop = 1;
+P_Interact = 0.0;
+Sam = 999;
+
+
+  // Calculation of sample statistics:
+
+DetectorRadius = sqrt((DetectorSize*DetectorSize) + (DetectorSize*DetectorSize));
+
+if(Virtual_Indput == 0){
+  sprintf(VI_filename,"mode1.mcpl.gz");
+  if(Detector_Distance == 2.0){
+    T_min=19000.0;
+    T_max=64000.0;
+  }
+  else if(Detector_Distance == 5.0){
+    T_min=22000.0;
+    T_max=72000.0;
+  }
+  else if(Detector_Distance == 10.0){
+    T_min=25000.0;
+    T_max=84000.0;
+  }
+  else{
+    T_min=0.0;
+    T_max=200000.0;
+  }
+}
+if(Virtual_Indput == 1){
+  sprintf(VI_filename,"mode2.mcpl.gz");
+  if(Detector_Distance == 2.0){
+    T_min=19000.0;
+    T_max=115000.0;
+  }
+  else if(Detector_Distance == 5.0){
+    T_min=22000.0;
+    T_max=130000.0;
+  }
+  else if(Detector_Distance == 10.0){
+    T_min=25000.0;
+    T_max=150000.0;
+  }
+  else{
+    T_min=0.0;
+    T_max=200000.0;
+  }
+}
+/* Not in use
+if(Virtual_Indput == 2){
+  sprintf(VI_filename,"loki_vsource-collen_5.0m-ap1_15mm-ap2_5mm-lmin_3.0A-lmax_11.5A.list");
+}
+if(Virtual_Indput == 3){
+  sprintf(VI_filename,"loki_vsource-collen_5.0m-ap1_15mm-ap2_5mm-lmin_3.0A-lmax_21.4A.list");
+}*/
+
+
+SAMPLE_HOLD = SAMPLE;
+SAMPLE_HOLD2 = SAMPLE;
+
+if(SAMPLE_HOLD >3){
+if(SAMPLE_HOLD == 4){
+  sprintf(Sample_String,"union_incoherent");
+  Sam = 4;
+}
+if(SAMPLE_HOLD == 5){
+  sprintf(Sample_String,"union_sans_sphere");
+  Sam = 5;
+}
+if(SAMPLE_HOLD == 6){
+  sprintf(Sample_String,"union_sans_sphere_incoherent");
+  Sam = 6;
+}
+}
+
+/* This does not work at the moment
+if(SAMPLE_HOLD == 3){
+  sprintf(Sample_String,"union_nanodisc_incoherent");
+  Sam = 3;
+}
+if(SAMPLE_HOLD == 4){
+  sprintf(Sample_String,"union_nanodisc");
+  Sam = 4;
+}*/
+
+
+AxisRatio=1.0;
+N_Lipids=120.0;
+AreaPrHead=60.13;
+H_1MSP=24.0;
+V_1MSP=27146.4;
+V_1Headgruope=319.0;
+V_1CH2Tail=754.2;
+V_1CH3Tail=108.6;
+SLD_1MSP=9.23E-10;
+Rough=0.0;
+Conc=0.001;
+//Conc=0.0;
+AbsCrossection=0.0;
+
+RhoHead_Deutorated = 247.55E-13;
+RhoCH2_Deutorated = 479.91E-13;
+RhoCH3_Deutorated = 53.34E-13;
+
+RhoHead_Hydrated = 60.06E-13;
+RhoCH2_Hydrated = -20.05E-13;
+RhoCH3_Hydrated = -91.55E-13;
+
+RhoHead_Mixed = 153.80E-13;
+RhoCH2_Mixed = 229.93E-13;
+RhoCH3_Mixed = 22.09E-13;
+
+RhoH2O = -1.678E-13/30.;
+RhoD2O = 19.15E-13/30.;
+RhoSolv = RhoH2O*(1.0-Solvent_Fraction) + RhoD2O*Solvent_Fraction;
+
+sigma_abs_H2O = 2*0.3326+0.00019;
+sigma_inc_H2O = 2*80.27+0.0;
+sigma_abs_D2O = 2*0.000519+0.00019;
+sigma_inc_D2O = 2*2.05+0.0;
+
+sigma_abs_solvent = sigma_abs_H2O*(1.0-Solvent_Fraction) + sigma_abs_D2O*Solvent_Fraction;
+sigma_inc_solvent = sigma_inc_H2O*(1.0-Solvent_Fraction) + sigma_inc_D2O*Solvent_Fraction;
+
+RhoSolv_Inc = sigma_inc_solvent/30.;
+
+if(Incoherent_Solvent == 1){
+  RhoSolv_Inc = 0.0;
+}
+if(Incoherent_Solvent == 2){
+  Conc = 0.0;
+}
+
+%}
+
+TRACE
+
+/*COMPONENT sans_spheres_process = Sans_spheres_process(
+    R=50, 
+    Phi=1, 
+    Delta_rho=0.6, 
+    packing_factor=1, 
+    interact_fraction=-1)
+AT (0, 0, 0) RELATIVE ABSOLUTE
+
+COMPONENT SANS_nanodiscs_fast_process = SANSNanodiscsFast_process(
+    AxisRatio=AxisRatio, 
+    NumberOfLipids=N_Lipids, 
+    AreaPerLipidHeadgroup=AreaPrHead, 
+    HeightOfMSP=H_1MSP, 
+    VolumeOfOneMSP=V_1MSP, 
+    VolumeOfHeadgroup=V_1Headgruope, 
+    VolumeOfCH2Tail=V_1CH2Tail, 
+    VolumeOfCH3Tail=V_1CH3Tail, 
+    ScatteringLengthOfOneMSP=SLD_1MSP, 
+    ScatteringLengthOfHeadgroup=RhoHead_Hydrated, 
+    ScatteringLengthOfCH2Tail=RhoCH2_Hydrated, 
+    ScatteringLengthOfCH3Tail=RhoCH3_Hydrated, 
+    Roughness=Rough,
+    Concentration=Conc, 
+    RhoSolvent=RhoSolv, 
+    packing_factor=1, 
+    interact_fraction=-1)
+AT (0, 0, 0) RELATIVE ABSOLUTE
+
+COMPONENT incoherent_process = Incoherent_process(
+    sigma=sigma_inc_solvent, 
+    packing_factor=1, 
+    unit_cell_volume=30, 
+    interact_fraction=-1)
+AT (0, 0, 0) RELATIVE ABSOLUTE
+
+COMPONENT union_incoherent = Union_make_material(
+    process_string="incoherent_process", 
+    my_absorption=100*sigma_abs_solvent/30.0)
+AT (0, 0, 0) RELATIVE PREVIOUS
+
+COMPONENT union_sans_sphere = Union_make_material(
+    process_string="sans_spheres_process", 
+    my_absorption=100*sigma_abs_solvent/30.0)
+AT (0, 0, 0) RELATIVE PREVIOUS
+
+COMPONENT union_sans_sphere_incoherent = Union_make_material(
+    process_string="sans_spheres_process,incoherent_process", 
+    my_absorption=100*sigma_abs_solvent/30.0)
+AT (0, 0, 0) RELATIVE PREVIOUS
+
+COMPONENT union_nanodisc_incoherent = Union_make_material(
+    process_string="SANS_nanodiscs_fast_process,incoherent_process", 
+    my_absorption=100*sigma_abs_solvent/30.0)
+AT (0, 0, 0) RELATIVE PREVIOUS
+
+COMPONENT union_nanodisc = Union_make_material(
+    process_string="SANS_nanodiscs_fast_process", 
+    my_absorption=100*sigma_abs_solvent/30.0)
+AT (0, 0, 0) RELATIVE PREVIOUS*/
+
+COMPONENT Origin = Progress_bar()
+  AT (0,0,0) ABSOLUTE
+
+COMPONENT virtual_input = MCPL_input(
+    filename=VI_filename, 
+    verbose=1, 
+    repeat_count=Repeat_Number, 
+    E_smear=0.01, dir_smear=0.0001, pos_smear=0.0001)
+AT (0,0,0) RELATIVE Origin
+EXTEND
+%{
+if(SAMPLE_HOLD2 == 2){
+  SAMPLE_HOLD = rand() % 2;
+}
+%}
+
+////////////////////////////////////////////////////////////
+
+/// Sample /////////////////////////////////////////////////////////////////////
+
+COMPONENT Hydrated_Disc = SANSNanodiscsFast_Loki(
+    AxisRatio=AxisRatio, 
+    NumberOfLipids=N_Lipids, 
+    AreaPerLipidHeadgroup=AreaPrHead, 
+    HeightOfMSP=H_1MSP, 
+    VolumeOfOneMSP=V_1MSP, 
+    VolumeOfHeadgroup=V_1Headgruope, 
+    VolumeOfCH2Tail=V_1CH2Tail, 
+    VolumeOfCH3Tail=V_1CH3Tail, 
+    ScatteringLengthOfOneMSP=SLD_1MSP, 
+    ScatteringLengthOfHeadgroup=RhoHead_Hydrated, 
+    ScatteringLengthOfCH2Tail=RhoCH2_Hydrated, 
+    ScatteringLengthOfCH3Tail=RhoCH3_Hydrated, 
+    Roughness=Rough,
+    Concentration=Conc, 
+    RhoSolvent=RhoSolv, 
+    RhoSolventIncoherent=RhoSolv_Inc,  
+    AbsorptionCrosssection=AbsCrossection,
+    AbsorptionCrosssectionSolvent=sigma_abs_solvent,
+    xwidth=0.1, 
+    yheight=0.1, 
+    zdepth=0.005, 
+    SampleToDetectorDistance=Detector_Distance, 
+    DetectorRadius=DetectorSize*2.0,
+    beamwidth_x = 0.01,
+    beamwidth_y = 0.01)
+WHEN(SAMPLE_HOLD==0)  AT (0, 0, 0.005) RELATIVE virtual_input
+
+COMPONENT Deutorated_Disc = SANSNanodiscsFast_Loki(
+    AxisRatio=AxisRatio,
+    NumberOfLipids=N_Lipids, 
+    AreaPerLipidHeadgroup=AreaPrHead, 
+    HeightOfMSP=H_1MSP, 
+    VolumeOfOneMSP=V_1MSP, 
+    VolumeOfHeadgroup=V_1Headgruope, 
+    VolumeOfCH2Tail=V_1CH2Tail,  
+    VolumeOfCH3Tail=V_1CH3Tail, 
+    ScatteringLengthOfOneMSP=SLD_1MSP, 
+    ScatteringLengthOfHeadgroup=RhoHead_Deutorated, 
+    ScatteringLengthOfCH2Tail=RhoCH2_Deutorated, 
+    ScatteringLengthOfCH3Tail=RhoCH3_Deutorated, 
+    Roughness=Rough, 
+    Concentration=Conc, 
+    RhoSolvent=RhoSolv, 
+    RhoSolventIncoherent=RhoSolv_Inc,  
+    AbsorptionCrosssection=AbsCrossection,
+    AbsorptionCrosssectionSolvent=sigma_abs_solvent,
+    xwidth=0.1, 
+    yheight=0.1, 
+    zdepth=0.005, 
+    SampleToDetectorDistance=Detector_Distance, 
+    DetectorRadius=DetectorSize*2.0,
+    beamwidth_x = 0.01,
+    beamwidth_y = 0.01)
+WHEN(SAMPLE_HOLD==1)  AT (0, 0, 0.005) RELATIVE virtual_input
+
+COMPONENT Mixed_Disc = SANSNanodiscsFast_Loki(
+    AxisRatio=AxisRatio, 
+    NumberOfLipids=N_Lipids, 
+    AreaPerLipidHeadgroup=AreaPrHead, 
+    HeightOfMSP=H_1MSP, 
+    VolumeOfOneMSP=V_1MSP, 
+    VolumeOfHeadgroup=V_1Headgruope, 
+    VolumeOfCH2Tail=V_1CH2Tail, 
+    VolumeOfCH3Tail=V_1CH3Tail, 
+    ScatteringLengthOfOneMSP=SLD_1MSP, 
+    ScatteringLengthOfHeadgroup=RhoHead_Mixed, 
+    ScatteringLengthOfCH2Tail=RhoCH2_Mixed, 
+    ScatteringLengthOfCH3Tail=RhoCH3_Mixed, 
+    Roughness=Rough,
+    Concentration=Conc, 
+    RhoSolvent=RhoSolv, 
+    RhoSolventIncoherent=RhoSolv_Inc,  
+    AbsorptionCrosssection=AbsCrossection,
+    AbsorptionCrosssectionSolvent=sigma_abs_solvent,
+    xwidth=0.1, 
+    yheight=0.1, 
+    zdepth=0.005, 
+    SampleToDetectorDistance=Detector_Distance, 
+    DetectorRadius=DetectorSize*2.0,
+    beamwidth_x = 0.01,
+    beamwidth_y = 0.01)
+WHEN(SAMPLE_HOLD==3)  AT (0, 0, 0.005) RELATIVE virtual_input
+
+/*COMPONENT union_box_inc = Union_box(
+    material_string=Sample_String, 
+    priority=1, 
+    xwidth=0.1, 
+    yheight=0.1, 
+    zdepth=0.005, 
+    target_z=Detector_Distance, 
+    focus_r=DetectorSize*2.0,
+    p_interact=P_Interact)
+AT (0, 0, 0.005) RELATIVE virtual_input
+
+COMPONENT union_master = Union_master()
+WHEN(SAMPLE_HOLD==Sam) AT (0, 0, 0.005) RELATIVE virtual_input*/
+
+/// Detectors //////////////////////////////////////////////////////////////////
+
+COMPONENT beamstop = Beamstop(
+    xwidth=0.012, 
+    yheight=0.012)
+WHEN (Beamstop==1) AT (0,0,1) RELATIVE virtual_input
+
+COMPONENT tof_monitor = TOF_monitor(
+    nt=20,
+    filename="TOF_Pre_Sample", 
+    xwidth=DetectorRadius, 
+    yheight=DetectorRadius,
+    tmin=0.0, 
+    tmax=T_max+20000, 
+    restore_neutron=1,
+    nowritefile = (!TOF_L_Monitor))
+WHEN(TOF_L_Monitor==1) AT (0, 0, Detector_Distance+0.005) RELATIVE virtual_input
+
+COMPONENT l_monitor = L_monitor(
+    nL=20,
+    filename="Lambda_Pre_sample", 
+    xwidth=DetectorRadius, 
+    yheight=DetectorRadius, 
+    Lmin=0.0, 
+    Lmax=22.0, 
+    restore_neutron=1,
+    nowritefile = (!TOF_L_Monitor))
+WHEN(TOF_L_Monitor==1) AT (0, 0, 0.0001) RELATIVE PREVIOUS
+
+COMPONENT PSD_TOF_monitor = PSD_TOF_monitor_fraction(
+    nx=125, 
+    ny=125, 
+    nt=20, 
+    PlotFraction = Plot_Frac,
+    filename="PSD_TOF_Test", 
+    restore_neutron=1, 
+    xwidth=DetectorSize, 
+    yheight=DetectorSize, 
+    tmin=T_min, 
+    tmax=T_max,
+    nowritefile = (!PSDT_Monitor))
+WHEN(PSDT_Monitor==1) AT (0, 0, 0.0001) RELATIVE PREVIOUS
+
+COMPONENT tof_psd_monitor_rad = TOF_PSD_monitor_rad(
+    nr=100, 
+    nt=20, 
+    filename="TOF_PSD_rad_Test", 
+    filename_av="TOF_PSD_rad_Ave_Test", 
+    rmax=DetectorRadius, 
+    tmin=T_min, 
+    tmax=T_max, 
+    restore_neutron=1,
+    nowritefile = (!IRT_Monitor))
+WHEN(IRT_Monitor==1) AT (0, 0, 0.0001) RELATIVE PREVIOUS
+
+COMPONENT tof_sans_monitor = TOF_SANS_monitor(
+    nr=125, 
+    nt=20,
+    nq=100, 
+    PlotFraction = Plot_Frac,
+    filename="TOF_SANS", 
+    rmax=DetectorRadius, 
+    tmin=T_min, 
+    tmax=T_max,
+    Qmax=0.06,
+    SDD=Detector_Distance+0.005,
+    restore_neutron=1,
+    EventMode = event_mode,
+    instrumentlength = Detector_Distance+0.005+23.5,
+    nowritefile = (!IQT_Monitor))
+WHEN(IQT_Monitor==1) AT (0, 0, 0.0001) RELATIVE PREVIOUS
+////////////////////////////////////////////////////////////////////////////////
+
+FINALLY
+%{
+
+%}
+END
