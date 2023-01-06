@@ -1,0 +1,120 @@
+/*******************************************************************************
+*         McXtrace instrument definition URL=http://www.mcxtrace.org
+*
+* Instrument: DanMAX_undulator
+*
+* %Identification
+* Written by: Erik B Knudsen (erkn@fysik.dtu.dk)
+* Date: Aug 2018
+* Origin: DTU Physics
+* Release: McXtrace 1.2
+* Version: 1.0
+* %INSTRUMENT_SITE: MAXIV
+*
+* DanMAX Powder diffraction/Imaging beamline being designed at MAX IV.
+*
+* %Description
+*
+* Design study model of the DanMAX PowderX/Imaging beamline.
+*
+* %Parameters
+* E0:  [keV] The central energy to sample from source model.
+* DE:  [keV] Spectral width to sample from. 
+* gap: [mm] Undulator gap. Should be >4.2 mm.
+* Nu:   [ ]  Number of undulator periods.
+* lambdau: [mm] Period length of undulator. 
+* electron_E [GeV] Energy of electrons in the storage ring.
+* xw         [m]   Width of aperture at 20 m.
+* yh         [m]   Height of aperture at 20 m.
+* %End
+*******************************************************************************/
+
+/* Change name of instrument and input parameters with default values */
+DEFINE INSTRUMENT DanMAX_undulator(gap=4.2, E0=10,DE=9.5, Nu=187, lambdau=16, electron_E=3.0, xw=1e-3, yh=1e-3)
+
+/* The DECLARE section allows us to declare variables or  small      */
+/* functions in C syntax. These may be used in the whole instrument. */
+DECLARE
+%{
+    double undB;
+    %include "read_table-lib"
+%}
+
+/* The INITIALIZE section is executed when the simulation starts     */
+/* (C code). You may use them as component parameter values.         */
+INITIALIZE
+%{
+    t_Table gaptable;
+    int status;
+    if ( (status=Table_Read(&gaptable,"DM_gaptable.dat",0))<0){
+        fprintf(stderr,"Error: Could not read the gap-table file %s.\n", "DM_gaptable.dat");
+        exit(-1);
+    }
+
+    if (gap<4.2){
+        fprintf(stderr,"Warning: specified gap is <4.2 mm which is the minimum allowed at DanMAX. Readjusting to gap=4.2 mm.\n");
+        gap=4.2;
+    }
+
+    undB=Table_Value(gaptable,gap,2);
+    /*calculate harmonic order and fundamental harmonic of the undulator*/
+/*    if (E0>15.757){*/
+/*        h=7;*/
+/*    }*/
+/*    if (E0>20.253){*/
+/*        h=9;*/
+/*    }*/
+/*    if (E0>24.753){*/
+/*        h=11;*/
+/*    }*/
+/*    if (E0>29.254){*/
+/*        h=13;*/
+/*    }*/
+/*    if (E0>33.755){*/
+/*        h=15;*/
+/*    }*/
+/**/
+/*    E1st=E0/h;*/
+/**/
+/*    printf("Test_DM_undulator: fundamental energy: %g, harmonic= %d, target energy= %g\n",E1st, h, E0);*/
+%}
+/* Here comes the TRACE section, where the actual      */
+/* instrument is defined as a sequence of components.  */
+TRACE
+
+/* The Arm() class component defines reference points and orientations  *//* in 3D space. Every component instance must have a unique name. Here, */
+/* Origin is used. This Arm() component is set to define the origin of  */
+/* our global coordinate system (AT (0,0,0) ABSOLUTE). It may be used   */
+/* for further RELATIVE reference, Other useful keywords are : ROTATED  */
+/* EXTEND GROUP PREVIOUS. Also think about adding a neutron source !    */
+/* Progress_bar is an Arm displaying simulation progress.               */
+
+COMPONENT Origin = Progress_bar( )
+AT (0,0,0) ABSOLUTE
+EXTEND
+%{
+%}
+
+COMPONENT dmu = Undulator(verbose=1, E0=E0, dE=DE, E1st=0,
+        focus_yh=2*yh, focus_xw=2*xw, dist=20, Ie=0.5, Ee=electron_E, dEe=0.0008, K=0, B=undB,
+        quick_integ=1, Nper=Nu, lu=lambdau*1e-3, sigex=53.66e-6, sigey=4.008e-6, sigepx=5.963e-6, sigepy=2.004e-6)
+AT(0,0,0) RELATIVE Origin
+
+COMPONENT emon_BeforeSlit = E_monitor(restore_xray=1,Emin=0, Emax=30, nE=512, filename="emon_BeforeSlit", xwidth=4e-3, yheight=4e-3)
+AT(0,0,19.999) RELATIVE dmu
+COMPONENT psd_BeforeSlit = PSD_monitor(filename="psd_BeforeSlit",xwidth=2*xw, yheight=2*yh, nx=201,ny=201)
+AT(0,0,0) RELATIVE PREVIOUS
+COMPONENT psd_BeforeSlit_x = PSD_monitor(filename="psd_BeforeSlit_x",xwidth=2*xw, yheight=2*yh, nx=201,ny=1)
+AT(0,0,0) RELATIVE PREVIOUS
+
+COMPONENT fe_aperture = Slit(xwidth=xw,yheight=yh)
+AT(0,0,20) RELATIVE dmu
+
+COMPONENT emon_AfterSlit = COPY(emon_BeforeSlit)(filename="emon_AfterSlit")
+AT(0,0,20.001) RELATIVE dmu
+COMPONENT psd_AfterSlit = COPY(psd_BeforeSlit)(filename="psd_AfterSlit")
+AT(0,0,0) RELATIVE PREVIOUS
+COMPONENT psd_AfterSlit_x = COPY(psd_BeforeSlit_x)(filename="psd_AfterSlit_x")
+AT(0,0,0) RELATIVE PREVIOUS
+
+END

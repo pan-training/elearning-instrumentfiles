@@ -1,0 +1,67 @@
+/*******************************************************************************
+*
+* McStas, neutron ray-tracing package
+*         Copyright (C) 1997-2008, All rights reserved
+*         Risoe National Laboratory, Roskilde, Denmark
+*         Institut Laue Langevin, Grenoble, France
+*
+* Instrument: PSI_SANS_II
+*
+* %Identification
+* Written by: <a href="mailto:kim.lefmann@risoe.dk">Kim Lefmann</a>
+* Date: 19th Dec 2003.
+* Origin: <a href="http://www.risoe.dk">Risoe</a>
+* %INSTRUMENT_SITE: Templates
+*
+* Test instrument for the Sans_spheres component. No guide / velocity selector
+* etc. Will be developed further at later time.
+*
+* %Description
+* Very simple test instrument for the Sans_spheres component
+*
+* %Example: Lambda=6 Detector: detector_I=5.5587E-17
+*
+* %Parameters
+* Lambda: [AA]          Mean wavelength of neutrons
+* dLambda: [1]          Fractional wavelength spread of neutrons wrt. Lambda
+* r: [AA]               Radius of scattering hard spheres
+* SD: [m]               Sample-detector distance
+* coll: [m]             Collimation distance
+*
+* %Link
+*
+* %End
+*******************************************************************************/
+DEFINE INSTRUMENT PSI_SANS_II(Lambda=6, dLambda=0.05, SD=6, coll=3, r=100)
+
+TRACE
+
+COMPONENT a1 = Progress_bar()
+  AT (0,0,0) ABSOLUTE
+
+COMPONENT source = Source_gen4 (
+    h = 0.135, w = 0.08, xw = 0.032, yh = 0.032,
+    dist = 57-coll, Lambda0=Lambda, dLambda=dLambda*Lambda,
+    T1=301.287, I1=(1.27e13/4/PI),
+    T2=105.655,I2=(3.818e12/4/PI),
+    T3=25.379,I3=(2.331e12/4/PI),
+    HEtailA=8.306e11/4/PI, HEtailL0=-0.398)
+AT (0, 0, 0) RELATIVE PREVIOUS
+
+COMPONENT L_mon0 = L_monitor(
+  nL = 1000, filename = "Ldet0.dat", xmin = -0.32,
+  xmax = 0.32, ymin = -0.32, ymax = 0.32, Lmin = 0,
+  Lmax = 2*Lambda, restore_neutron=1)
+  AT (0, 0, 50) RELATIVE source
+
+COMPONENT Div_mon0 = Divergence_monitor(
+  nh = 50, nv=50, filename = "DivMon0.dat", xmin = -0.32,
+  xmax = 0.32, ymin = -0.32, ymax = 0.32, maxdiv_h=0.2, maxdiv_v=0.2, restore_neutron=1)
+  AT (0, 0, 50) RELATIVE source 
+
+COMPONENT PSD_mon0 = PSD_monitor(
+  nx = 100, ny=100, filename = "PSD0.dat", xmin = -0.032,
+  xmax = 0.032, ymin = -0.032, ymax = 0.032, restore_neutron=1)
+  AT (0, 0, 50) RELATIVE source
+
+END

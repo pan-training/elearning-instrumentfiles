@@ -1,0 +1,106 @@
+/*******************************************************************************
+ * Instrument: X-Diffractometer
+*
+* %I
+* Written by: Erik B knudsen <erkn@fysik.dtu.dk>
+* Date: Sep 2017
+* Origin: DTU Physics
+* Version: 1.0
+* %INSTRUMENT_SITE: DTU_10200
+*
+* Simple X-ray powder diffraction instrument with an undulator source, a sample, and some monitors.
+*
+* %D
+* Simple X-ray powder diffraction instrument with an undulator source, a sample, and some monitors.
+*
+* The included monitors are:
+* a) A big, rectangular "screen" behind the sample for visualising Debye-Scherrrer rings
+* b) A 2-dimensional I vs. angle x height, cylindrical "banana" monitor
+* c) A 1-dimensional I vs. angle cylindrical "banana" monitor 
+* d) A 2-dimensional I vs. angle and ToF monitor for the "TOF" mode (pretty irrelevant - included for completeness)
+* 
+*
+* Idealisations:
+* a) No "direct beam" is tunneled through the sample.
+* Example: <parameters=values>
+*
+* %P
+* lambda:     [AA]      Central wavelength produced by the source
+* dlambda:    [AA]      Width +/- of wavelength band around central wavelength
+* powderfile: [string]  "Structure" datafile for studied material
+* d_phi:      [deg]     When d_phi == 180 deg, the sample illuminates "all angles around the scattering plane". When d_phi ~ 20 deg, scattering will be restricted directionally to "hit" the banana-shaped detectors
+* 
+* %L
+* <reference/HTML link>
+*
+* %E
+*******************************************************************************/
+DEFINE INSTRUMENT X_diffractometer(lambda=0, dlambda=0, string powderfile="C_diamond.laz", d_phi=180)
+
+DECLARE
+%{
+	double ee0,dde;
+%}
+
+INITIALIZE
+%{
+	if (lambda==0){
+		ee0=0.5*(K2E*2*M_PI/(0.2) + K2E*2*M_PI/(1.0) );
+		dde=0.5*(K2E*2*M_PI/(0.2) - K2E*2*M_PI/(1.0) );
+        }else{
+		ee0=0.5*(K2E*2*M_PI/(lambda-dlambda) + K2E*2*M_PI/(lambda+dlambda) );
+		dde=0.5*(K2E*2*M_PI/(lambda-dlambda) - K2E*2*M_PI/(lambda+dlambda) );
+        }
+        printf("e-interval: %g %g\n", ee0-dde,ee0+dde);        
+%}
+
+TRACE
+
+COMPONENT origin = Progress_bar()
+AT (0, 0, 0) RELATIVE ABSOLUTE
+
+COMPONENT Source = Undulator(Ee=2.5, K=1, E0=ee0, dE=dde, Ie=0.4, B=0, gap=4.2e-3,
+	Nper=134, lu=1.65e-2, sigex=0.05367e-3, sigey=0.004e-3, focus_xw=1e-3,focus_yh=1e-3, dist=20,
+        quick_integ=1)
+AT(0,0,0) RELATIVE origin
+EXTEND
+%{
+    Ex=1;Ey=0;Ez=0;
+%}
+
+COMPONENT Energy_source=E_monitor(
+        filename="Energy_source.dat", xwidth=1e-2, yheight=1e-2, Emin=0, Emax=120, nE=1000)
+AT(0,0,0.5e-3) RELATIVE PREVIOUS 
+
+COMPONENT Lambda_source = L_monitor(
+    nL=200, 
+    filename="Lambda_source.dat", 
+    Lmin=0.2, 
+    Lmax=1, 
+    restore_xray=1)
+AT (0, 0, 1e-3) RELATIVE PREVIOUS
+
+SPLIT 10 COMPONENT Sample = PowderN(reflections=powderfile, radius=0.005, yheight=0.07, d_phi=d_phi, p_transmit=0)
+AT (0,0,20) RELATIVE Source
+EXTEND %{
+  if(!SCATTERED) ABSORB;
+%}
+
+  COMPONENT DebyeS_rectangular = Monitor_nD(xwidth=2, yheight=2 ,options="x bins=401, y bins=401", restore_xray=1, filename="DebyeS_rectangular")
+  AT (0,0,1) RELATIVE Sample
+
+  COMPONENT Powder_2D_banana = Monitor_nD(radius=1, yheight=0.2,options="banana, theta limits=[10,170] bins=320, y limits=[-0.1,0.1] bins=81", restore_xray=1, filename="Powder_2D")
+  AT (0,0,0) RELATIVE Sample
+
+  COMPONENT Powder_1D_banana = Monitor_nD(radius=1, yheight=0.2,options="banana, theta limits=[10,170] bins=320, ", restore_xray=1, filename="Powder_1D")
+  AT (0,0,0) RELATIVE Sample
+
+  COMPONENT TOF_2D_banana = Monitor_nD(radius=1, yheight=0.2,options="banana, theta limits=[10,170] bins=320, auto tof bins=500", restore_xray=1, filename="TOF_2D")
+  AT (0,0,0) RELATIVE Sample
+
+
+FINALLY
+%{
+%}
+
+END

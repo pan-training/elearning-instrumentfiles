@@ -1,0 +1,164 @@
+/*******************************************************************************
+* Instrument: <instrument name>
+*
+* %I
+* Written by: Peter Willendrup <pkwi@fysik.dtu.dk>
+* Date: September 2017
+* Origin: DTU
+* %INSTRUMENT_SITE: DTU_10200
+*
+* Simple instrument with a source, a guide and some monitors. 
+*
+* %D
+* Simple instrument with a source, a guide and some monitors. Illustrates how one
+* can transport neutrons more efficiently over a distance using a neutron guide, 
+* and how the properties of the transported beam changes with varying guide coating.
+*
+* Example: <parameters=values>
+*
+* %P
+* source: [1] Choice of flat=1 or Maxwellian=2 source
+* Lmin: [AA] Shortest wavelength produced from the source
+* Lmax:	[AA] Longest wavelength produced from the source
+* guide_dim: [m] Width / height of guide
+* length: [m] Length of guide 
+* m: [1] Guide coating value, m=0 disables guide, m=1 Ni guide, any larger m is supermirror
+* %L
+* <reference/HTML link>
+*
+* %E
+*******************************************************************************/
+DEFINE INSTRUMENT Source_and_guide(int source=1,Lmin=0.5,Lmax=20,guide_dim=0.1,length=50,m=0)
+
+DECLARE
+%{
+	double focus_x, focus_y, dist;
+%}
+
+INITIALIZE
+%{
+  if (m>=0) {
+    dist=2;
+  } else {
+    dist=2+length;
+  }
+
+  focus_x=guide_dim;
+  focus_y=guide_dim;
+%}
+
+TRACE
+
+COMPONENT origin = Progress_bar()
+AT (0, 0, 0) RELATIVE ABSOLUTE
+
+// insert components here (e.g. Insert -> Source -> ...)
+
+COMPONENT Source = Source_simple(
+    yheight=0.1, 
+    xwidth=0.1, 
+    dist=dist, 
+    focus_xw=focus_x, 
+    focus_yh=focus_y, 
+    lambda0=(Lmax+Lmin)/2.0, 
+    dlambda=(Lmax-Lmin)/2.0,
+    flux=1e13,
+    target_index=0)
+WHEN (source==1) AT (0, 0, 0) RELATIVE PREVIOUS
+
+COMPONENT Source2 = Source_Maxwell_3(
+    yheight=0.1, 
+    xwidth=0.1, 
+    Lmin=Lmin, 
+    Lmax=Lmax, 
+    dist=dist, 
+    focus_xw=focus_x, 
+    focus_yh=focus_y, 
+    T1=150.42, 
+    T2=38.74, 
+    T3=14.84, 
+    I1=3.67E11, 
+    I2=3.64E11, 
+    I3=0.95E11, 
+    target_index=0)
+WHEN (source==2) AT (0, 0, 0) RELATIVE PREVIOUS
+  
+COMPONENT psd_monitor_source = PSD_monitor(
+    nx=110, 
+    ny=110, 
+    filename="PSD_source", 
+    xmin=0, 
+    xmax=0, 
+    ymin=0, 
+    ymax=0, 
+    xwidth=1.01*guide_dim, 
+    yheight=1.01*guide_dim)
+AT (0, 0, 2-3e-3) RELATIVE PREVIOUS
+
+COMPONENT divergence_monitor_source = Divergence_monitor(
+    nh=45, 
+    nv=45, 
+    filename="DIV_source", 
+    xmin=0, 
+    xmax=0, 
+    ymin=0, 
+    ymax=0, 
+    xwidth=1.01*guide_dim, 
+    yheight=1.01*guide_dim, 
+    maxdiv_h=3.5, 
+    maxdiv_v=3.3)
+AT (0, 0, 1e-3) RELATIVE PREVIOUS
+
+COMPONENT L_monitor_source = L_monitor(
+    nL=100, 
+    filename="L_source", 
+    Lmin=0.05, 
+    Lmax=20, 
+    xwidth=1.01*guide_dim, 
+    yheight=1.01*guide_dim)
+AT (0, 0, 1e-3) RELATIVE PREVIOUS
+
+COMPONENT Guide = Guide_gravity(w1=guide_dim, h1=guide_dim, l=length, m=fabs(m))
+WHEN (m>=0) AT (0,0,2) RELATIVE Source
+
+
+COMPONENT psd_monitor_eog = PSD_monitor(
+    nx=110, 
+    ny=110, 
+    filename="PSD_end", 
+    xmin=0, 
+    xmax=0, 
+    ymin=0, 
+    ymax=0, 
+    xwidth=1.01*guide_dim, 
+    yheight=1.01*guide_dim)
+AT (0, 0, length+1e-3) RELATIVE PREVIOUS
+
+COMPONENT divergence_monitor_eog = Divergence_monitor(
+    nh=45, 
+    nv=45, 
+    filename="DIV_end", 
+    xmin=0, 
+    xmax=0, 
+    ymin=0, 
+    ymax=0, 
+    xwidth=1.01*guide_dim, 
+    yheight=1.01*guide_dim, 
+    maxdiv_h=3.5, 
+    maxdiv_v=3.5)
+AT (0, 0, 1e-3) RELATIVE PREVIOUS
+
+  COMPONENT L_monitor_eog = L_monitor(
+    nL=100, 
+    filename="L_end", 
+    Lmin=0.05, 
+    Lmax=20, 
+    xwidth=1.01*guide_dim, 
+    yheight=1.01*guide_dim)
+AT (0, 0, 1e-3) RELATIVE PREVIOUS
+
+FINALLY
+%{
+%}
+
+END
