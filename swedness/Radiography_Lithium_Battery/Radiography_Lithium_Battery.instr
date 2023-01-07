@@ -164,8 +164,8 @@ AT (0,0,0) ABSOLUTE
 COMPONENT LiC6_incoherent = Incoherent_process(sigma=LiC6_inc, packing_factor=1, unit_cell_volume=100,interact_fraction=-1)
 AT (0,0,0) ABSOLUTE
 
- COMPONENT LiC6_fake_powder = Powder_process(reflections="C_battery.laz")
-//  COMPONENT LiC6_fake_powder = Powder_battery_process(reflections="C_battery.laz",temperature=300,charge_level=battery_charge)
+  // COMPONENT LiC6_fake_powder = Powder_process(reflections="C_battery.laz")
+COMPONENT LiC6_fake_powder = Powder_battery_process(reflections="C_battery.laz",temperature=300,charge_level=battery_charge)
 AT (0,0,0) ABSOLUTE
 
 COMPONENT LiC6 = Union_make_material(my_absorption=LiC6_abs,process_string="LiC6_incoherent,LiC6_fake_powder")
