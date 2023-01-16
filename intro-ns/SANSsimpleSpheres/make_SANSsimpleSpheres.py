@@ -73,4 +73,43 @@ def make():
     SampleArm = SANSsimpleSpheres.add_component("SampleArm", "Arm")
     SampleArm.set_AT(['0', '0', '0.05'], RELATIVE="ArmSlit2")
 
+    sample = SANSsimpleSpheres.add_component("sample", "SANSSpheresPolydisperse")
+    sample.R = "R"
+    sample.dR = "dR"
+    sample.Concentration = "conc"
+    sample.DeltaRho = "DeltaRho"
+    AbsorptionCrosssection = 0.5
+    sample.xwidth = "4*pinhole_rad"
+    yheight = "4*pinhole_rad"
+    sample.zdepth = 0.005
+    SampleToDetectorDistance = "LD"
+    sample.DetectorRadius = "1.03*Rdet"
+    sample.set_WHEN("SAMPLE")
+    sample.set_AT(['0', '0', '0'], RELATIVE="SampleArm")
+
+    beamstop = SANSsimpleSpheres.add_component("beamstop", "Beamstop")
+    beamstop.radius = "3*pinhole_rad"
+    beamstop.set_WHEN("BEAMSTOP")
+    beamstop.set_AT(['0', '0', 'LD-0.01'], RELATIVE="ArmSlit2")
+
+    PSD = SANSsimpleSpheres.add_component("PSD", "PSD_monitor")
+    PSD.nx = 128
+    PSD.ny = 128
+    PSD.restore_neutron = 1
+    PSD.filename = "\"PSD.dat\"",
+    xwidth = 1
+    PSD.yheight = 1
+    PSD.set_AT(['0', '0', 'LD-0.01'], RELATIVE="ArmSlit2")
+
+    q_monitor = SANSsimpleSpheres.add_component("q_monitor", "SANSQMonitor")
+    RFilename = "\"rdetector.dat\""
+    q_monitor.qFilename = "\"qdetector.dat\""
+    NumberOfBins = 100
+    q_monitor.restore_neutron = 1
+    RadiusDetector = "Rdet"
+    q_monitor.DistanceFromSample = "LD"
+    LambdaMin = "Lambda"
+    q_monitor.Lambda0 = "Lambda"
+    q_monitor.set_AT(['0', '0', 'LD-0.01'], RELATIVE="ArmSlit2")
+
     return SANSsimpleSpheres
