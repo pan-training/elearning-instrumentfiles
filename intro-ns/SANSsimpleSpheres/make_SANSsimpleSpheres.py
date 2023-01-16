@@ -78,11 +78,11 @@ def make():
     sample.dR = "dR"
     sample.Concentration = "conc"
     sample.DeltaRho = "DeltaRho"
-    AbsorptionCrosssection = 0.5
+    sample.AbsorptionCrosssection = 0.5
     sample.xwidth = "4*pinhole_rad"
-    yheight = "4*pinhole_rad"
+    sample.yheight = "4*pinhole_rad"
     sample.zdepth = 0.005
-    SampleToDetectorDistance = "LD"
+    sample.SampleToDetectorDistance = "LD"
     sample.DetectorRadius = "1.03*Rdet"
     sample.set_WHEN("SAMPLE")
     sample.set_AT(['0', '0', '0'], RELATIVE="SampleArm")
@@ -96,19 +96,19 @@ def make():
     PSD.nx = 128
     PSD.ny = 128
     PSD.restore_neutron = 1
-    PSD.filename = "\"PSD.dat\"",
+    PSD.filename = "\"PSD.dat\""
     xwidth = 1
     PSD.yheight = 1
     PSD.set_AT(['0', '0', 'LD-0.01'], RELATIVE="ArmSlit2")
 
     q_monitor = SANSsimpleSpheres.add_component("q_monitor", "SANSQMonitor")
-    RFilename = "\"rdetector.dat\""
+    q_monitor.RFilename = "\"rdetector.dat\""
     q_monitor.qFilename = "\"qdetector.dat\""
-    NumberOfBins = 100
+    q_monitor.NumberOfBins = 100
     q_monitor.restore_neutron = 1
-    RadiusDetector = "Rdet"
+    q_monitor.RadiusDetector = "Rdet"
     q_monitor.DistanceFromSample = "LD"
-    LambdaMin = "Lambda"
+    q_monitor.LambdaMin = "Lambda"
     q_monitor.Lambda0 = "Lambda"
     q_monitor.set_AT(['0', '0', 'LD-0.01'], RELATIVE="ArmSlit2")
 
