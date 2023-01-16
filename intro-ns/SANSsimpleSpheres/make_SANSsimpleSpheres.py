@@ -97,7 +97,7 @@ def make():
     PSD.ny = 128
     PSD.restore_neutron = 1
     PSD.filename = "\"PSD.dat\""
-    xwidth = 1
+    PSD.xwidth = 1
     PSD.yheight = 1
     PSD.set_AT(['0', '0', 'LD-0.01'], RELATIVE="ArmSlit2")
 
