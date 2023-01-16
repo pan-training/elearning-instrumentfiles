@@ -4,7 +4,7 @@ rm -r data_folder
 rm -r debug
 rm -r logs
 
-mcrun_path=/Applications/McStas-3.2build.app/Contents/Resources/mcstas/3.2build/bin/
+mcrun_path=/Applications/McStas-3.2.app/Contents/Resources/mcstas/3.2/bin/
 
 cp -r SANSsimple SANSsimple_run
 cp -r SANSsimpleSpheres SANSsimpleSpheres_run

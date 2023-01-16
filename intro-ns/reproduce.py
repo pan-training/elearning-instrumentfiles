@@ -102,7 +102,7 @@ class from_reference:
                 
         self.mcrun_path = mcrun_path
         if self.mcrun_path is None:
-            self.mcrun_path = "/Applications/McStas-3.2build.app/Contents/Resources/mcstas/3.2build/bin/"
+            self.mcrun_path = "/Applications/McStas-3.2.app/Contents/Resources/mcstas/3.2/bin/"
         
         if not os.path.isdir(self.mcrun_path):
             raise ValueError("Given mcrun path is not valid!")
