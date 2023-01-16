@@ -71,6 +71,7 @@ def make():
     sampleB.yheight = "4*pinhole_rad"
     sampleB.dist = "LD"
     sampleB.Rdet = "Rdet"
+    SampleB.set_SPLIT(10)
     sampleB.set_WHEN("SAMPLE==1")
     sampleB.set_AT(['0', '0', '0'], RELATIVE="SampleArm")
 
