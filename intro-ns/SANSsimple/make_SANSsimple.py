@@ -64,7 +64,7 @@ def make():
     sampleB.R = "R"
     sampleB.dR = "dR"
     sampleB.Phi = "PHI"
-    sampleB.Delta_rho = "DeltaRho"
+    sampleB.Delta_rho = "Delta_Rho"
     sampleB.sigma_a = 0.5
     sampleB.qmax = "Qmax"
     sampleB.xwidth = "4*pinhole_rad"
